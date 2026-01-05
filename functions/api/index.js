@@ -5,13 +5,31 @@ export async function onRequest(context) {
   const DATABASE_ID = env.NOTION_DATABASE_ID;
 
   const res = await fetch(`https://api.notion.com/v1/databases/${DATABASE_ID}/query`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${NOTION_TOKEN}`,
-      "Notion-Version": "2022-06-28",
-      "Content-Type": "application/json"
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${NOTION_TOKEN}`,
+    "Notion-Version": "2022-06-28",
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    filter: {
+      and: [
+        {
+          property: "Public",
+          checkbox: { equals: true }
+        },
+        {
+          property: "Show on Events Hub",
+          checkbox: { equals: true }
+        },
+        {
+          property: "Publish Status",
+          select: { equals: "Published" }
+        }
+      ]
     }
-  });
+  })
+});
 
   const data = await res.json();
 
