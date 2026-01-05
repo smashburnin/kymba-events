@@ -9,15 +9,15 @@ export async function onRequest(context) {
   headers: {
     "Authorization": `Bearer ${NOTION_TOKEN}`,
     "Notion-Version": "2022-06-28",
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
   },
   body: JSON.stringify({
-  filter: {
-    property: "Public",
-    checkbox: { equals: true }
-  }
-})
-
+    filter: {
+      property: "Public",
+      checkbox: { equals: true },
+    },
+  }),
+});
   const data = await res.json();
 
   const getTitle = (p) => p?.title?.[0]?.plain_text || "";
