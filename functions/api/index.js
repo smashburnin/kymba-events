@@ -4,7 +4,20 @@ export async function onRequest(context) {
   const NOTION_TOKEN = env.NOTION_TOKEN;
   const DATABASE_ID = env.NOTION_DATABASE_ID;
 
-  const res = await fetch(
+  // --- Notion field helpers (safe by design) ---
+  const getTitle = (p) => p?.title?.[0]?.plain_text || "";
+  const getRichText = (p) => p?.rich_text?.[0]?.plain_text || "";
+  const getCheckbox = (p) => p?.checkbox === true;
+  const getStatus = (p) => p?.status?.name || "";
+  const getSelect = (p) => p?.select?.name || "";
+  const getMultiSelect = (p) =>
+    Array.isArray(p?.multi_select) ? p.multi_select.map((x) => x.name).join(", ") : "";
+  const getUrl = (p) => p?.url || "";
+  const getDate = (p) => p?.date?.start || "";
+  const getFormulaBool = (p) => p?.formula?.boolean === true;
+
+  // --- Query Notion database ---
+  const notionRes = await fetch(
     `https://api.notion.com/v1/databases/${DATABASE_ID}/query`,
     {
       method: "POST",
@@ -13,39 +26,78 @@ export async function onRequest(context) {
         "Notion-Version": "2022-06-28",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ page_size: 5 }), // only sample 5
+      // Pull more than 5 so your feed is useful; adjust if needed
+      body: JSON.stringify({ page_size: 100 }),
     }
   );
 
-  const data = await res.json();
+  const data = await notionRes.json();
 
-  const first = data?.results?.[0];
-  const props = first?.properties || {};
-
-  const propertyCatalog = Object.fromEntries(
-    Object.entries(props).map(([name, val]) => [name, val?.type || "unknown"])
-  );
-
-  return new Response(
-    JSON.stringify(
+  // If Notion errors, return a readable error payload (still JSON)
+  if (!notionRes.ok) {
+    return new Response(
+      JSON.stringify(
+        {
+          error: "Notion query failed",
+          status: notionRes.status,
+          details: data,
+        },
+        null,
+        2
+      ),
       {
-        ok: res.ok,
-        status: res.status,
-        results_count: data?.results?.length || 0,
-        has_more: !!data?.has_more,
-        sample_page_name: first?.properties?.["Event Title"]?.title?.[0]?.plain_text
-          || first?.properties?.Name?.title?.[0]?.plain_text
-          || "(no title found)",
-        property_catalog: propertyCatalog,
-      },
-      null,
-      2
-    ),
-    {
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "no-store",
-      },
-    }
-  );
+        status: 500,
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+      }
+    );
+  }
+
+  const results = Array.isArray(data?.results) ? data.results : [];
+
+  const events = results
+    .map((page) => {
+      const props = page?.properties || {};
+
+      // --- Gates (your 3-condition contract) ---
+      const isPublic = getCheckbox(props["Public"]);
+      const showOnHub = getFormulaBool(props["Show on Events Hub"]); // formula boolean
+      const publishStatus = getStatus(props["Publish Status"]); // status name
+
+      if (!(isPublic && showOnHub && publishStatus === "Published")) return null;
+
+      // --- Build the public-safe output object ---
+      const title = getTitle(props["Event Title"]) || "Untitled event";
+      const startDate = getDate(props["Start Date"]) || "";
+      const region =
+        getSelect(props["Associated KYMBA Chapter"]) ||
+        getRichText(props["City / Region"]) ||
+        "";
+      const type = getMultiSelect(props["Event Type"]) || "";
+      const location =
+        getRichText(props["Location Name"]) ||
+        getRichText(props["Address or Trail System"]) ||
+        "";
+
+      const url =
+        getUrl(props["RSVP / Event Link"]) ||
+        getUrl(props["Event Link (posted elsewhere)"]) ||
+        "";
+
+      return {
+        title,
+        date: startDate,
+        region,
+        type,
+        location,
+        url,
+      };
+    })
+    .filter(Boolean);
+
+  return new Response(JSON.stringify({ events }, null, 2), {
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+    },
+  });
 }
