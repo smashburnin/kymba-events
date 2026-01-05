@@ -1,0 +1,272 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>KYMBA Events</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <style>
+    :root{
+      --bg: transparent;
+      --text: #111;
+      --muted: rgba(0,0,0,.65);
+      --card-bg: rgba(255,255,255,.92);
+      --card-border: rgba(0,0,0,.12);
+      --shadow: 0 10px 30px rgba(0,0,0,.10);
+      --radius: 18px;
+      --radius-sm: 12px;
+      --gap: 14px;
+      --pad: 16px;
+      --maxw: 1100px;
+      --accent: #0b5fff; /* tweak to match KYMBABluegrass */
+      --chip-bg: rgba(0,0,0,.06);
+      --chip-border: rgba(0,0,0,.10);
+    }
+
+    html,body{height:100%}
+    body{
+      margin:0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+
+    .wrap{
+      max-width: var(--maxw);
+      margin: 0 auto;
+      padding: 18px 16px 24px;
+    }
+
+    .topbar{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 12px;
+      align-items:flex-end;
+      justify-content:space-between;
+      margin-bottom: 12px;
+    }
+
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap: 4px;
+    }
+
+    .title h2{
+      margin:0;
+      font-size: 18px;
+      line-height:1.2;
+      letter-spacing:.2px;
+    }
+    .title p{
+      margin:0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .filters{
+      display:flex;
+      gap: 10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    label{
+      font-size: 12px;
+      color: var(--muted);
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+
+    select, input[type="search"]{
+      appearance:none;
+      border: 1px solid var(--card-border);
+      background: rgba(255,255,255,.85);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13px;
+      min-width: 160px;
+      outline: none;
+    }
+
+    .row{
+      display:flex;
+      gap: var(--gap);
+      overflow-x:auto;
+      overflow-y:hidden;
+      scroll-snap-type: x mandatory;
+      padding: 6px 2px 14px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .row::-webkit-scrollbar{height:10px}
+    .row::-webkit-scrollbar-thumb{
+      background: rgba(0,0,0,.18);
+      border-radius: 999px;
+    }
+
+    .card{
+      scroll-snap-align: start;
+      flex: 0 0 320px;
+      border: 1px solid var(--card-border);
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      min-height: 340px;
+    }
+
+    .img{
+      height: 150px;
+      background: linear-gradient(135deg, rgba(0,0,0,.08), rgba(0,0,0,.02));
+      position:relative;
+      overflow:hidden;
+    }
+    .img img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    .content{
+      padding: var(--pad);
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+      flex:1;
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap: 8px;
+    }
+    .chip{
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--chip-border);
+      background: var(--chip-bg);
+      color: rgba(0,0,0,.78);
+      line-height:1;
+      white-space:nowrap;
+    }
+
+    .event-title{
+      margin: 2px 0 0;
+      font-size: 16px;
+      line-height: 1.25;
+      letter-spacing: .2px;
+    }
+
+    .meta{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .meta .line{
+      display:flex;
+      gap: 8px;
+      align-items:flex-start;
+    }
+    .dot{
+      width:6px;height:6px;border-radius:50%;
+      background: rgba(0,0,0,.28);
+      margin-top: 6px;
+      flex: 0 0 6px;
+    }
+
+    .actions{
+      margin-top:auto;
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      padding-top: 6px;
+    }
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap: 8px;
+      text-decoration:none;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-weight: 600;
+      font-size: 13px;
+      border: 1px solid var(--card-border);
+      background: rgba(255,255,255,.85);
+      color: var(--text);
+    }
+    .btn.primary{
+      background: var(--accent);
+      color: white;
+      border-color: transparent;
+    }
+
+    .status{
+      color: var(--muted);
+      font-size: 13px;
+      padding: 10px 2px 0;
+    }
+
+    .empty{
+      border: 1px dashed var(--card-border);
+      border-radius: var(--radius);
+      padding: 18px;
+      color: var(--muted);
+      background: rgba(255,255,255,.65);
+    }
+
+    @media (max-width: 420px){
+      .card{flex-basis: 82vw}
+      select, input[type="search"]{min-width: 150px}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="title">
+        <h2>Upcoming Events</h2>
+        <p>Live from Notion • filterable • scrollable</p>
+      </div>
+
+      <div class="filters">
+        <label>
+          Region
+          <select id="regionSelect">
+            <option value="__all__">All regions</option>
+          </select>
+        </label>
+
+        <label>
+          Event Type
+          <select id="typeSelect">
+            <option value="__all__">All types</option>
+          </select>
+        </label>
+
+        <label>
+          Search
+          <input id="searchInput" type="search" placeholder="Try: clinic, trail, fundraiser…" />
+        </label>
+      </div>
+    </div>
+
+    <div id="status" class="status">Loading events…</div>
+    <div id="row" class="row" aria-label="Event cards scroller"></div>
+    <div id="empty" class="empty" style="display:none;">
+      No events match those filters (which is either peaceful… or suspicious). Try clearing filters.
+    </div>
+  </div>
+
+  <script src="./events.js"></script>
+</body>
+</html>
