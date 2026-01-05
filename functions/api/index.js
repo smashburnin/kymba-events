@@ -11,10 +11,7 @@ export async function onRequest(context) {
     "Notion-Version": "2022-06-28",
     "Content-Type": "application/json",
   },
-  body: JSON.stringify({
-    filter: {
-      property: "Public",
-      checkbox: { equals: true },
+body: JSON.stringify({}),
     },
   }),
 });
