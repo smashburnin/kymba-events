@@ -12,24 +12,11 @@ export async function onRequest(context) {
     "Content-Type": "application/json"
   },
   body: JSON.stringify({
-    filter: {
-      and: [
-        {
-          property: "Public",
-          checkbox: { equals: true }
-        },
-        {
-          property: "Show on Events Hub",
-          checkbox: { equals: true }
-        },
-        {
-          property: "Publish Status",
-          select: { equals: "Published" }
-        }
-      ]
-    }
-  })
-});
+  filter: {
+    property: "Public",
+    checkbox: { equals: true }
+  }
+})
 
   const data = await res.json();
 
