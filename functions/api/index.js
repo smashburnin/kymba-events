@@ -1,103 +1,55 @@
-export async function onRequest(context) {
-  const { env } = context;
+document.addEventListener("DOMContentLoaded", async () => {
+  const container = document.getElementById("events");
 
-  const NOTION_TOKEN = env.NOTION_TOKEN;
-  const DATABASE_ID = env.NOTION_DATABASE_ID;
-
-  // --- Notion field helpers (safe by design) ---
-  const getTitle = (p) => p?.title?.[0]?.plain_text || "";
-  const getRichText = (p) => p?.rich_text?.[0]?.plain_text || "";
-  const getCheckbox = (p) => p?.checkbox === true;
-  const getStatus = (p) => p?.status?.name || "";
-  const getSelect = (p) => p?.select?.name || "";
-  const getMultiSelect = (p) =>
-    Array.isArray(p?.multi_select) ? p.multi_select.map((x) => x.name).join(", ") : "";
-  const getUrl = (p) => p?.url || "";
-  const getDate = (p) => p?.date?.start || "";
-  const getFormulaBool = (p) => p?.formula?.boolean === true;
-
-  // --- Query Notion database ---
-  const notionRes = await fetch(
-    `https://api.notion.com/v1/databases/${DATABASE_ID}/query`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${NOTION_TOKEN}`,
-        "Notion-Version": "2022-06-28",
-        "Content-Type": "application/json",
-      },
-      // Pull more than 5 so your feed is useful; adjust if needed
-      body: JSON.stringify({ page_size: 100 }),
-    }
-  );
-
-  const data = await notionRes.json();
-
-  // If Notion errors, return a readable error payload (still JSON)
-  if (!notionRes.ok) {
-    return new Response(
-      JSON.stringify(
-        {
-          error: "Notion query failed",
-          status: notionRes.status,
-          details: data,
-        },
-        null,
-        2
-      ),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
-      }
-    );
+  if (!container) {
+    console.error("Events container not found");
+    return;
   }
 
-  const results = Array.isArray(data?.results) ? data.results : [];
+  try {
+    const res = await fetch("/api");
+    if (!res.ok) throw new Error("Failed to fetch events");
 
-  const events = results
-    .map((page) => {
-      const props = page?.properties || {};
+    const data = await res.json();
+    const events = Array.isArray(data.events) ? data.events : [];
 
-      // --- Gates (your 3-condition contract) ---
-      const isPublic = getCheckbox(props["Public"]);
-      const showOnHub = getFormulaBool(props["Show on Events Hub"]); // formula boolean
-      const publishStatus = getStatus(props["Publish Status"]); // status name
+    if (events.length === 0) {
+      container.innerHTML = "<p>No upcoming events found.</p>";
+      return;
+    }
 
-      if (!(isPublic && showOnHub && publishStatus === "Published")) return null;
+    // Sort by date (ascending)
+    events.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-      // --- Build the public-safe output object ---
-      const title = getTitle(props["Event Title"]) || "Untitled event";
-      const startDate = getDate(props["Start Date"]) || "";
-      const region =
-        getSelect(props["Associated KYMBA Chapter"]) ||
-        getRichText(props["City / Region"]) ||
-        "";
-      const type = getMultiSelect(props["Event Type"]) || "";
-      const location =
-        getRichText(props["Location Name"]) ||
-        getRichText(props["Address or Trail System"]) ||
-        "";
+    container.innerHTML = events
+      .map((e) => {
+        const date = e.date
+          ? new Date(e.date).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })
+          : "";
 
-      const url =
-        getUrl(props["RSVP / Event Link"]) ||
-        getUrl(props["Event Link (posted elsewhere)"]) ||
-        "";
-
-      return {
-        title,
-        date: startDate,
-        region,
-        type,
-        location,
-        url,
-      };
-    })
-    .filter(Boolean);
-
-  return new Response(JSON.stringify({ events }, null, 2), {
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store",
-    },
-  });
-}
+        return `
+          <div class="event-card">
+            <h3>${e.title}</h3>
+            ${date ? `<p><strong>Date:</strong> ${date}</p>` : ""}
+            ${e.region ? `<p><strong>Region:</strong> ${e.region}</p>` : ""}
+            ${e.type ? `<p><strong>Type:</strong> ${e.type}</p>` : ""}
+            ${e.location ? `<p><strong>Location:</strong> ${e.location}</p>` : ""}
+            ${
+              e.url
+                ? `<p><a href="${e.url}" target="_blank" rel="noopener">Event details</a></p>`
+                : ""
+            }
+          </div>
+        `;
+      })
+      .join("");
+  } catch (err) {
+    console.error(err);
+    container.innerHTML =
+      "<p>There was a problem loading events. Please try again later.</p>";
+  }
+});
